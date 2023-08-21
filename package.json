@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "rm -rf dist && tsc && esbuild --bundle src/**/*.ts --platform=node --target=node18 --external:@aws-sdk/client-s3 --outdir=dist",
+    "lint": "eslint . --ext .ts --ignore-pattern 'dist/**' --fix",
     "test": "vitest --run"
   },
   "keywords": [],
@@ -17,7 +18,10 @@
   "devDependencies": {
     "@types/mime-db": "^1.43.1",
     "@types/uuid": "^9.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
     "esbuild": "^0.19.2",
+    "eslint": "^8.47.0",
     "typescript": "^5.1.6",
     "vitest": "^0.34.2"
   },

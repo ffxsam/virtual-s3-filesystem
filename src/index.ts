@@ -155,7 +155,7 @@ class VirtualS3FileSystem {
               await this.throwError(
                 `Not enough space to cache file "${this.fileKeyMap[key]}" ` +
                   `(${sizeInBytes} bytes needed, ${this.tmpAvailableBytes} ` +
-                  `bytes available)`
+                  'bytes available)'
               );
             }
 
@@ -165,10 +165,12 @@ class VirtualS3FileSystem {
                 Key: this.fileKeyMap[key],
               })
             );
-          } catch (e: any) {
-            if (e.name === 'AccessDenied' || e.name === 'NoSuchKey') {
+          } catch (e: unknown) {
+            const err = e as Error;
+
+            if (err.name === 'AccessDenied' || err.name === 'NoSuchKey') {
               await this.throwError(
-                `${e.name} while getting s3://${this.bucket}/` +
+                `${err.name} while getting s3://${this.bucket}/` +
                   this.fileKeyMap[key]
               );
             }
