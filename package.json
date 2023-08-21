@@ -10,6 +10,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc && esbuild --bundle src/**/*.ts --platform=node --target=node18 --external:@aws-sdk/client-s3 --outdir=dist",
     "lint": "eslint . --ext .ts --ignore-pattern 'dist/**' --fix",
+    "prepare": "husky install",
     "test": "vitest --run"
   },
   "keywords": [],
@@ -22,6 +23,9 @@
     "@typescript-eslint/parser": "^6.4.1",
     "esbuild": "^0.19.2",
     "eslint": "^8.47.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.2",
     "typescript": "^5.1.6",
     "vitest": "^0.34.2"
   },
@@ -30,5 +34,11 @@
   },
   "dependencies": {
     "uuid": "^9.0.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   }
 }
