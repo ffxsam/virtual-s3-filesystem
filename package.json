@@ -1,0 +1,30 @@
+{
+  "name": "virtual-s3-filesystem",
+  "version": "1.0.0",
+  "description": "TBD",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc && esbuild --bundle src/**/*.ts --platform=node --target=node18 --external:@aws-sdk/client-s3 --outdir=dist",
+    "test": "vitest --run"
+  },
+  "keywords": [],
+  "author": "Sam Hulick <samh@reelcrafter.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/mime-db": "^1.43.1",
+    "@types/uuid": "^9.0.2",
+    "esbuild": "^0.19.2",
+    "typescript": "^5.1.6",
+    "vitest": "^0.34.2"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.395.0"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0"
+  }
+}
