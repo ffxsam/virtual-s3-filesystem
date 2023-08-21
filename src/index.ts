@@ -53,14 +53,33 @@ class VirtualS3FileSystem {
     s3Client,
     tmpFolder = '/tmp',
   }: {
+    /**
+     * S3 client to use for all S3 operations.
+     *
+     * @example
+     * const s3Client = new S3Client({ region: 'us-east-1' });
+     * const vfs = new VirtualS3FileSystem({ s3Client });
+     */
     s3Client: S3Client;
+    /**
+     * Folder to use for temporary files.
+     * @default '/tmp'
+     */
     tmpFolder?: string;
   }) {
     this.s3 = s3Client;
     this.systemTmp = tmpFolder;
   }
 
-  public async init(bucket: string, fileKeyMap: Record<string, string>) {
+  /**
+   * Initializes the virtual filesystem.
+   * @param bucket The bucket name to use for all S3 operations
+   * @param fileKeyMap A map of cache keys to S3 keys
+   */
+  public async init(
+    bucket: string,
+    fileKeyMap: Record<string, string>
+  ): Promise<void> {
     this.bucket = bucket;
     this.fileKeyMap = fileKeyMap;
     this.tmpFolder = `${this.systemTmp}/vs3fs-${randomUUID()}`;
