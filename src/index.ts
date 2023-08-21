@@ -1,7 +1,7 @@
 import path from 'node:path';
 import * as fsPromises from 'node:fs/promises';
 import fs from 'node:fs';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -63,7 +63,7 @@ class VirtualS3FileSystem {
   public async init(bucket: string, fileKeyMap: Record<string, string>) {
     this.bucket = bucket;
     this.fileKeyMap = fileKeyMap;
-    this.tmpFolder = `${this.systemTmp}/vs3fs-${uuid()}`;
+    this.tmpFolder = `${this.systemTmp}/vs3fs-${randomUUID()}`;
 
     await fsPromises.mkdir(this.tmpFolder, { recursive: true });
 
@@ -133,7 +133,7 @@ class VirtualS3FileSystem {
 
         if (!this.filePathMap[key]) {
           const { ext } = path.parse(this.fileKeyMap[key]);
-          const fullPath = `${this.tmpFolder}/${uuid()}${ext}`;
+          const fullPath = `${this.tmpFolder}/${randomUUID()}${ext}`;
           let response: GetObjectCommandOutput;
           let sizeInBytes: number;
 
@@ -234,7 +234,7 @@ class VirtualS3FileSystem {
     this.checkInit();
 
     const { ext } = path.parse(s3Key);
-    const fullPath = `${this.tmpFolder}/${uuid()}${ext}`;
+    const fullPath = `${this.tmpFolder}/${randomUUID()}${ext}`;
 
     this.fileKeyMap[newKey] = s3Key;
     this.filePathMap[newKey] = { path: fullPath, mimeType, modified: false };
