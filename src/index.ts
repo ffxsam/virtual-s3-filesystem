@@ -11,6 +11,13 @@ import {
 } from '@aws-sdk/client-s3';
 import type { Readable } from 'node:stream';
 
+type S3Url = `s3://${string}/${string}`;
+type S3Location = { bucket: string; key: string };
+
+type FileKeyMap = {
+  [key: string]: S3Url | S3Location;
+};
+
 type FilePathMap = {
   [key: string]: {
     path: string;
@@ -40,8 +47,7 @@ export type VfsFile = {
 };
 
 class VirtualS3FileSystem {
-  private bucket: string | undefined = undefined;
-  private fileKeyMap: Record<string, string> = {};
+  private fileKeyMap: { [key: string]: S3Location } = {};
   private filePathMap: FilePathMap = {};
   private fileWatchers: fs.FSWatcher[] = []; // Experimental for now
   private s3: S3Client;
@@ -73,15 +79,29 @@ class VirtualS3FileSystem {
 
   /**
    * Initializes the virtual filesystem.
-   * @param bucket The bucket name to use for all S3 operations
    * @param fileKeyMap A map of cache keys to S3 keys
+   * @example
+   * await vfs.init({
+   *   fileA: 's3://my-bucket/path/to/fileA',
+   *   fileB: {
+   *     bucket: 'another-bucket',
+   *     key: 'path/to/fileB',
+   *   }
+   * })
    */
-  public async init(
-    bucket: string,
-    fileKeyMap: Record<string, string>
-  ): Promise<void> {
-    this.bucket = bucket;
-    this.fileKeyMap = fileKeyMap;
+  public async init(fileKeyMap: FileKeyMap): Promise<void> {
+    // this.fileKeyMap = fileKeyMap;
+    // Convert fileKeyMap to all S3Locations
+    Object.keys(fileKeyMap).forEach((key) => {
+      const s3Url = fileKeyMap[key];
+
+      if (typeof s3Url === 'string') {
+        this.fileKeyMap[key] = this.convertS3UrlToLocation(s3Url);
+      } else {
+        this.fileKeyMap[key] = s3Url;
+      }
+    });
+
     this.tmpFolder = `${this.systemTmp}/vs3fs-${randomUUID()}`;
 
     await fsPromises.mkdir(this.tmpFolder, { recursive: true });
@@ -127,8 +147,8 @@ class VirtualS3FileSystem {
           stream.on('ready', async () => {
             await this.s3.send(
               new PutObjectCommand({
-                Bucket: this.bucket,
-                Key: this.fileKeyMap[key],
+                Bucket: this.fileKeyMap[key].bucket,
+                Key: this.fileKeyMap[key].key,
                 Body: stream,
                 ContentType: this.filePathMap[key].mimeType,
               })
@@ -151,7 +171,7 @@ class VirtualS3FileSystem {
         }
 
         if (!this.filePathMap[key]) {
-          const { ext } = path.parse(this.fileKeyMap[key]);
+          const { ext } = path.parse(this.fileKeyMap[key].key);
           const fullPath = `${this.tmpFolder}/${randomUUID()}${ext}`;
           let response: GetObjectCommandOutput;
           let sizeInBytes: number;
@@ -159,8 +179,8 @@ class VirtualS3FileSystem {
           try {
             response = await this.s3.send(
               new HeadObjectCommand({
-                Bucket: this.bucket,
-                Key: this.fileKeyMap[key],
+                Bucket: this.fileKeyMap[key].bucket,
+                Key: this.fileKeyMap[key].key,
               })
             );
 
@@ -180,8 +200,8 @@ class VirtualS3FileSystem {
 
             response = await this.s3.send(
               new GetObjectCommand({
-                Bucket: this.bucket,
-                Key: this.fileKeyMap[key],
+                Bucket: this.fileKeyMap[key].bucket,
+                Key: this.fileKeyMap[key].key,
               })
             );
           } catch (e: unknown) {
@@ -189,8 +209,8 @@ class VirtualS3FileSystem {
 
             if (err.name === 'AccessDenied' || err.name === 'NoSuchKey') {
               await this.throwError(
-                `${err.name} while getting s3://${this.bucket}/` +
-                  this.fileKeyMap[key]
+                `${err.name} while getting s3://${this.fileKeyMap[key].bucket}/` +
+                  this.fileKeyMap[key].key
               );
             }
 
@@ -242,29 +262,43 @@ class VirtualS3FileSystem {
    * Creates a placeholder in the cache for a file that will be created in the
    * future.
    * @param newKey Cache key for the new file
-   * @param s3Key S3 key to sync to
+   * @param s3Object S3 location to sync to
    * @param mimeType Optional MIME type of the file
    */
   public createFutureFile(
     newKey: string,
-    s3Key: string,
+    s3Object: S3Url | S3Location,
     mimeType?: string
   ): VfsFile {
     this.checkInit();
 
-    const { ext } = path.parse(s3Key);
+    const s3Location =
+      typeof s3Object === 'string'
+        ? this.convertS3UrlToLocation(s3Object)
+        : s3Object;
+    const { ext } = path.parse(s3Location.key);
     const fullPath = `${this.tmpFolder}/${randomUUID()}${ext}`;
 
-    this.fileKeyMap[newKey] = s3Key;
+    this.fileKeyMap[newKey] = s3Location;
     this.filePathMap[newKey] = { path: fullPath, mimeType, modified: false };
 
     return this.file(newKey);
   }
 
   private checkInit() {
-    if (!this.bucket) {
+    if (!this.tmpFolder) {
       throw new Error('VirtualS3FileSystem not initialized');
     }
+  }
+
+  private convertS3UrlToLocation(s3Url: S3Url): S3Location {
+    const { host, pathname } = new URL(s3Url);
+
+    if (!host || !pathname) {
+      this.throwError(`Invalid S3 URL: ${s3Url}`);
+    }
+
+    return { bucket: host, key: pathname.slice(1) };
   }
 
   private async throwError(errMsg: string) {
