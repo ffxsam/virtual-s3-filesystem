@@ -23,6 +23,8 @@ type FilePathMap = {
     path: string;
     mimeType?: string;
     modified: boolean;
+    /** Experimental feature */
+    watcher?: fs.FSWatcher;
   };
 };
 
@@ -49,7 +51,6 @@ export type VfsFile = {
 class VirtualS3FileSystem {
   private fileKeyMap: { [key: string]: S3Location } = {};
   private filePathMap: FilePathMap = {};
-  private fileWatchers: fs.FSWatcher[] = []; // Experimental for now
   private s3: S3Client;
   private systemTmp: string;
   private tmpFolder = '';
@@ -79,7 +80,7 @@ class VirtualS3FileSystem {
 
   /**
    * Initializes the virtual filesystem.
-   * @param fileKeyMap A map of cache keys to S3 keys
+   * @param fileKeyMap A map of cache keys to S3 objects
    * @example
    * await vfs.init({
    *   fileA: 's3://my-bucket/path/to/fileA',
@@ -90,7 +91,6 @@ class VirtualS3FileSystem {
    * })
    */
   public async init(fileKeyMap: FileKeyMap): Promise<void> {
-    // this.fileKeyMap = fileKeyMap;
     // Convert fileKeyMap to all S3Locations
     Object.keys(fileKeyMap).forEach((key) => {
       const s3Url = fileKeyMap[key];
@@ -114,7 +114,7 @@ class VirtualS3FileSystem {
    * Destroys the virtual filesystem and deletes all local files.
    */
   public async destroy(): Promise<void> {
-    this.fileWatchers.forEach((watcher) => watcher.close());
+    Object.values(this.filePathMap).forEach((file) => file.watcher?.close());
     await fsPromises.rm(this.tmpFolder, { force: true, recursive: true });
     this.filePathMap = {};
     this.fileKeyMap = {};
@@ -160,6 +160,7 @@ class VirtualS3FileSystem {
         });
       },
       delete: async () => {
+        this.filePathMap[key].watcher?.close();
         await fsPromises.rm(this.filePathMap[key].path, { force: true });
       },
       getPath: async () => {
@@ -228,11 +229,16 @@ class VirtualS3FileSystem {
           });
 
           this.tmpAvailableBytes -= sizeInBytes;
-          this.filePathMap[key] = { path: fullPath, mimeType, modified: false };
-          this.fileWatchers.push(
-            fs.watch(this.filePathMap[key].path, () => {
+          this.filePathMap[key] = {
+            path: fullPath,
+            mimeType,
+            modified: false,
+          };
+          this.filePathMap[key].watcher = fs.watch(
+            this.filePathMap[key].path,
+            () => {
               this.filePathMap[key].modified = true;
-            })
+            }
           );
         }
 
@@ -243,7 +249,8 @@ class VirtualS3FileSystem {
 
   /**
    * Commits all modified files to S3. EXPERIMENTAL FEATURE, due to fs.watch not
-   * being completely reliable.
+   * being completely reliable. Files created via createFutureFile() will not
+   * be committed.
    */
   public async commitChanged(): Promise<void> {
     this.checkInit();
@@ -279,7 +286,19 @@ class VirtualS3FileSystem {
     const fullPath = `${this.tmpFolder}/${randomUUID()}${ext}`;
 
     this.fileKeyMap[newKey] = s3Location;
-    this.filePathMap[newKey] = { path: fullPath, mimeType, modified: false };
+    this.filePathMap[newKey] = {
+      path: fullPath,
+      mimeType,
+      modified: false,
+    };
+
+    /**
+     * TODO: Somehow watch for future files
+     * Would be super cool if we could detect when this file gets created, but
+     * you can't watch a nonexistent file, and watching the whole tmp folder
+     * seems inconsistent (if the file is created too quickly after the watcher
+     * is created, it doesn't detect the new file).
+     */
 
     return this.file(newKey);
   }
