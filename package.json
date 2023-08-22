@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc && esbuild --bundle src/**/*.ts --platform=node --target=node18 --external:@aws-sdk/client-s3 --outdir=dist",
+    "build": "rm -rf dist && tsc && node build",
     "lint": "eslint . --ext .ts --ignore-pattern 'dist/**' --fix",
     "prepare": "husky install",
     "test": "vitest --run"
