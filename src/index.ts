@@ -103,7 +103,6 @@ class VirtualS3FileSystem {
     });
 
     this.tmpFolder = `${this.systemTmp}/vs3fs-${randomUUID()}`;
-
     await fsPromises.mkdir(this.tmpFolder, { recursive: true });
 
     const statFs = await fsPromises.statfs(this.systemTmp);
