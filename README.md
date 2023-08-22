@@ -96,3 +96,40 @@ await mp3File.commit();
 ```
 
 When we use `createFutureFile`, it's creating a mapping to a file in `/tmp` that doesn't exist yet, so it expects you to create it, otherwise the call to `commit` will throw an error.
+
+## API Docs
+
+### Instance Methods
+
+```ts
+init(fileKeyMap: FileKeyMap): Promise<void>
+```
+Initializes the virtual filesystem with a mapping of cache keys to S3 objects.
+
+```ts
+destroy(): Promise<void>
+```
+Destroys the virtual filesystem and deletes all local files.
+
+```ts
+file(key: string): VfsFile
+```
+Gets a file from the virtual filesystem and returns a `VfsFile` object with methods to interact with the file.
+
+```ts
+commitChanged(): Promise<void>
+```
+Commits all modified files to S3 (experimental feature).
+
+```ts
+createFutureFile(newKey: string, s3Object: S3Url | S3Location, mimeType?: string): VfsFile
+```
+Creates a placeholder in the cache for a file that will be created in the future and returns a VfsFile object.
+
+### `VfsFile` Object
+
+The VfsFile object provides the following methods:
+
+`commit(): Promise<void>`: Commits the local file to S3.  
+`delete(): Promise<void>`: Deletes the local file.  
+`getPath(): Promise<string>`: Gets the local path of the file, downloading from S3 if necessary.
