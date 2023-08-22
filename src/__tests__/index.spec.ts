@@ -5,10 +5,11 @@ import {
   S3Client,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { Readable, Writable } from 'node:stream';
 import * as fsPromises from 'node:fs/promises';
-import fs from 'node:fs';
+import fs, { ReadStream } from 'node:fs';
 import VirtualS3FileSystem from '../index';
 
 // Create mocks for fs and fsPromises
@@ -23,15 +24,16 @@ describe('virtual-s3-filesystem', () => {
 
   beforeEach(() => {
     s3Mock.on(HeadObjectCommand).resolves({
-      ContentLength: 2,
+      ContentLength: 9,
       ContentType: 'text/plain',
     });
     s3Mock.on(GetObjectCommand).resolves({
       // @ts-expect-error This is legit
-      Body: Readable.from('hi'),
-      ContentLength: 2,
+      Body: Readable.from('Text here'),
+      ContentLength: 9,
       ContentType: 'text/plain',
     });
+    s3Mock.on(PutObjectCommand).resolves({});
 
     (fs.watch as Mock).mockReturnValue({
       close: () => {},
@@ -44,13 +46,26 @@ describe('virtual-s3-filesystem', () => {
         },
       });
     });
-  });
 
-  it('initializes properly', async () => {
+    (fs.createReadStream as Mock).mockImplementation(() => {
+      const readable = new ReadStream({
+        read() {
+          this.emit('ready');
+          this.push('Text here');
+          this.emit('end');
+        },
+      });
+
+      return readable;
+    });
+
     (fsPromises.statfs as Mock).mockResolvedValue({
       bavail: 1000000,
       bsize: 1024,
     });
+  });
+
+  it('initializes properly', async () => {
     await vfs.init({
       fileA: 's3://my-bucket/path/to/fileA.txt',
     });
@@ -79,5 +94,19 @@ describe('virtual-s3-filesystem', () => {
     const fileBPath = await vfs.file('fileB').getPath();
 
     expect(fileAPath.slice(0, 48)).toBe(fileBPath.slice(0, 48));
+  });
+
+  /**
+   * TODO: I suck at mocking - need help with this one
+   */
+  it.skip('uploads to S3', async () => {
+    await vfs.init({
+      fileA: 's3://my-bucket/path/to/fileA.txt',
+    });
+
+    const fileA = vfs.file('fileA');
+
+    await fileA.commit(); // this hangs because the stream events never fire
+    // expect(PutObjectCommand).toHaveBeenCalled();
   });
 });
