@@ -137,11 +137,12 @@ class VirtualS3FileSystem {
           stream.on('error', (err: NodeJS.ErrnoException) => {
             if (err.code === 'ENOENT') {
               this.throwError(
-                `Local file "${this.filePathMap[key].path}" not found`
+                `Local file "${this.filePathMap[key].path}" not found`,
+                err
               ).catch((err) => reject(err));
             }
 
-            this.throwError(err.message).catch((err) => reject(err));
+            this.throwError(err.message, err).catch((err) => reject(err));
           });
           stream.on('ready', async () => {
             await this.s3.send(
@@ -210,7 +211,8 @@ class VirtualS3FileSystem {
             if (err.name === 'AccessDenied' || err.name === 'NoSuchKey') {
               await this.throwError(
                 `${err.name} while getting s3://${this.fileKeyMap[key].bucket}/` +
-                  this.fileKeyMap[key].key
+                  this.fileKeyMap[key].key,
+                err
               );
             }
 
@@ -305,7 +307,7 @@ class VirtualS3FileSystem {
 
   private checkInit() {
     if (!this.tmpFolder) {
-      throw new Error('VirtualS3FileSystem not initialized');
+      this.throwError('Not initialized; must call init() before using');
     }
   }
 
@@ -319,9 +321,14 @@ class VirtualS3FileSystem {
     return { bucket: host, key: pathname.slice(1) };
   }
 
-  private async throwError(errMsg: string) {
+  private async throwError(errMsg: string, originalError?: Error) {
     await this.destroy();
-    throw new Error('[VirtualS3FileSystem] ' + errMsg);
+    throw new Error(
+      '[VirtualS3FileSystem] ' + errMsg,
+      originalError && {
+        cause: originalError,
+      }
+    );
   }
 }
 
