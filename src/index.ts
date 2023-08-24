@@ -295,7 +295,11 @@ class VirtualS3FileSystem {
     this.filePathMap[newKey] = {
       path: fullPath,
       mimeType,
-      modified: false,
+      /**
+       * Default future files to modified, so they'll be committed if
+       * commitChanged() is called.
+       */
+      modified: true,
     };
 
     /**
