@@ -255,8 +255,8 @@ class VirtualS3FileSystem {
 
   /**
    * Commits all modified files to S3. EXPERIMENTAL FEATURE, due to fs.watch not
-   * being completely reliable. Files created via createFutureFile() will not
-   * be committed.
+   * being completely reliable. Files created via createFutureFile() will be
+   * committed.
    */
   public async commitChanged(): Promise<void> {
     this.checkInit();
