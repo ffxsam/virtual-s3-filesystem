@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc && node build",
+    "build": "pnpm lint && rm -rf dist && tsc && node build",
     "lint": "eslint . --ext .ts --ignore-pattern 'dist/**' --fix",
     "prepare": "husky install",
     "test": "vitest --run"
