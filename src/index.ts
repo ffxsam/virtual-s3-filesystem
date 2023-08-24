@@ -208,7 +208,11 @@ class VirtualS3FileSystem {
           } catch (e: unknown) {
             const err = e as Error;
 
-            if (err.name === 'AccessDenied' || err.name === 'NoSuchKey') {
+            if (
+              err.name === 'AccessDenied' ||
+              err.name === 'NoSuchKey' ||
+              err.name === 'NotFound'
+            ) {
               await this.throwError(
                 `${err.name} while getting s3://${this.fileKeyMap[key].bucket}/` +
                   this.fileKeyMap[key].key,
