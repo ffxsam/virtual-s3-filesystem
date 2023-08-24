@@ -145,14 +145,24 @@ class VirtualS3FileSystem {
             this.throwError(err.message, err).catch((err) => reject(err));
           });
           stream.on('ready', async () => {
-            await this.s3.send(
-              new PutObjectCommand({
-                Bucket: this.fileKeyMap[key].bucket,
-                Key: this.fileKeyMap[key].key,
-                Body: stream,
-                ContentType: this.filePathMap[key].mimeType,
-              })
-            );
+            try {
+              await this.s3.send(
+                new PutObjectCommand({
+                  Bucket: this.fileKeyMap[key].bucket,
+                  Key: this.fileKeyMap[key].key,
+                  Body: stream,
+                  ContentType: this.filePathMap[key].mimeType,
+                })
+              );
+            } catch (e: unknown) {
+              const err = e as Error;
+
+              this.throwError(
+                `${err.name} error while saving ${key} to ` +
+                  this.getS3Url(key),
+                err
+              ).catch((err) => reject(err));
+            }
           });
           stream.on('end', () => {
             resolve();
@@ -208,19 +218,12 @@ class VirtualS3FileSystem {
           } catch (e: unknown) {
             const err = e as Error;
 
-            if (
-              err.name === 'AccessDenied' ||
-              err.name === 'NoSuchKey' ||
-              err.name === 'NotFound'
-            ) {
-              await this.throwError(
-                `${err.name} while getting s3://${this.fileKeyMap[key].bucket}/` +
-                  this.fileKeyMap[key].key,
-                err
-              );
-            }
+            await this.throwError(
+              `${err.name} error while getting ${this.getS3Url(key)}`,
+              err
+            );
 
-            throw e;
+            throw e; // this won't actually happen, it's just to satisfy TS
           }
 
           const mimeType = response.ContentType;
@@ -327,6 +330,10 @@ class VirtualS3FileSystem {
     }
 
     return { bucket: host, key: pathname.slice(1) };
+  }
+
+  private getS3Url(key: string) {
+    return `s3://${this.fileKeyMap[key].bucket}/${this.fileKeyMap[key].key}`;
   }
 
   private async throwError(errMsg: string, originalError?: Error) {
