@@ -58,6 +58,7 @@ class VirtualS3FileSystem {
 
   constructor({
     s3Client,
+    storageClass = 'STANDARD',
     tmpFolder = '/tmp',
   }: {
     /**
@@ -69,12 +70,19 @@ class VirtualS3FileSystem {
      */
     s3Client: S3Client;
     /**
+     * The S3 storage class to use when saving files to S3.
+     * 'INTELLIGENT_TIERING' is recommended for most use cases.
+     * @default 'STANDARD'
+     */
+    storageClass: StorageClass;
+    /**
      * Folder to use for temporary files.
      * @default '/tmp'
      */
     tmpFolder?: string;
   }) {
     this.s3 = s3Client;
+    this.storageClass = storageClass;
     this.systemTmp = tmpFolder;
   }
 
@@ -152,6 +160,7 @@ class VirtualS3FileSystem {
                   Key: this.fileKeyMap[key].key,
                   Body: stream,
                   ContentType: this.filePathMap[key].mimeType,
+                  StorageClass: this.storageClass,
                 })
               );
             } catch (e: unknown) {
