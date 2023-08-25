@@ -6,6 +6,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   HeadObjectCommand,
+  StorageClass,
   type S3Client,
   type GetObjectCommandOutput,
 } from '@aws-sdk/client-s3';
@@ -52,6 +53,7 @@ class VirtualS3FileSystem {
   private fileKeyMap: { [key: string]: S3Location } = {};
   private filePathMap: FilePathMap = {};
   private s3: S3Client;
+  private storageClass: StorageClass;
   private systemTmp: string;
   private tmpFolder = '';
   private tmpAvailableBytes = 0;
@@ -99,6 +101,14 @@ class VirtualS3FileSystem {
    * })
    */
   public async init(fileKeyMap: FileKeyMap): Promise<void> {
+    /**
+     * We have to clear out these maps here and not in the constructor, because
+     * the constructor is called once per Lambda cold start. We don't want key
+     * and path maps to persist across invocations.
+     */
+    this.fileKeyMap = {};
+    this.filePathMap = {};
+
     // Convert fileKeyMap to all S3Locations
     Object.keys(fileKeyMap).forEach((key) => {
       const s3Url = fileKeyMap[key];
@@ -173,7 +183,7 @@ class VirtualS3FileSystem {
               ).catch((err) => reject(err));
             }
           });
-          stream.on('end', () => {
+          stream.on('close', () => {
             resolve();
             this.filePathMap[key].modified = false;
           });

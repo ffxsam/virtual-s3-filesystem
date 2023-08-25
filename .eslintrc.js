@@ -68,9 +68,9 @@ module.exports = {
     'no-await-in-loop': 'error',
     'no-case-declarations': 'error',
     'standard/no-callback-literal': 'off',
-    'no-console': 'error',
+    'no-console': 'warn',
     'no-const-assign': 'error',
-    'no-debugger': 'error',
+    'no-debugger': 'warn',
     'no-duplicate-imports': 'error',
     'no-else-return': 'error',
     'no-implicit-coercion': [
