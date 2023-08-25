@@ -1,7 +1,7 @@
 {
   "name": "virtual-s3-filesystem",
-  "version": "1.0.2",
-  "description": "TBD",
+  "version": "1.0.3",
+  "description": "A virtual filesystem for processing AWS S3 files locally",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
