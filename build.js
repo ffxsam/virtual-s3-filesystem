@@ -8,6 +8,7 @@ require('esbuild')
     target: 'node18',
     external: ['@aws-sdk/client-s3'],
     outdir: 'dist',
+    minify: true,
   })
   .then(() => console.log('⚡ Built! Go forth and publish!'))
   .catch(() => process.exit(1));
