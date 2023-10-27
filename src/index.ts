@@ -11,6 +11,7 @@ import {
   type GetObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 import type { Readable } from 'node:stream';
+import createDebug from 'debug';
 
 type S3Url = `s3://${string}/${string}`;
 type S3Location = { bucket: string; key: string };
@@ -48,6 +49,12 @@ export type VfsFile = {
    */
   getPath: () => Promise<string>;
 };
+
+/**
+ * To enable debug logging, set the DEBUG environment variable to include
+ * 'vs3fs' (e.g. 'DEBUG=vs3fs,other1,other2').
+ */
+const debug = createDebug('vs3fs');
 
 class VirtualS3FileSystem {
   private fileKeyMap: { [key: string]: S3Location } = {};
@@ -163,6 +170,8 @@ class VirtualS3FileSystem {
             this.throwError(err.message, err).catch((err) => reject(err));
           });
           stream.on('ready', async () => {
+            debug(`Uploading ${key} to ${this.getS3Url(key)}...`);
+
             try {
               await this.s3.send(
                 new PutObjectCommand({
@@ -184,8 +193,10 @@ class VirtualS3FileSystem {
             }
           });
           stream.on('close', () => {
-            resolve();
+            debug(`Successfully uploaded ${key} to ${this.getS3Url(key)}`);
+
             this.filePathMap[key].modified = false;
+            resolve();
           });
         });
       },
