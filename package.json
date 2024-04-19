@@ -1,6 +1,6 @@
 {
   "name": "virtual-s3-filesystem",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A virtual filesystem for processing AWS S3 files locally",
   "homepage": "https://github.com/ffxsam/virtual-s3-filesystem",
   "repository": {

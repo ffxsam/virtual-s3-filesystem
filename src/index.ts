@@ -83,7 +83,7 @@ class VirtualS3FileSystem {
      * 'INTELLIGENT_TIERING' is recommended for most use cases.
      * @default 'STANDARD'
      */
-    storageClass: StorageClass;
+    storageClass?: StorageClass;
     /**
      * Folder to use for temporary files.
      * @default '/tmp'
