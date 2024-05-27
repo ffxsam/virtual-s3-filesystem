@@ -1,6 +1,6 @@
 {
   "name": "virtual-s3-filesystem",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A virtual filesystem for processing AWS S3 files locally",
   "homepage": "https://github.com/ffxsam/virtual-s3-filesystem",
   "repository": {
@@ -40,7 +40,7 @@
     "debug": "^4.3.4"
   },
   "peerDependencies": {
-    "@aws-sdk/client-s3": "^3.300.0"
+    "@aws-sdk/client-s3": "^3.520.0"
   },
   "lint-staged": {
     "*.ts": [
