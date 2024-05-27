@@ -22,19 +22,19 @@
   "author": "Sam Hulick <samh@reelcrafter.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/debug": "^4.1.10",
-    "@types/mime-db": "^1.43.1",
-    "@types/uuid": "^9.0.2",
-    "@typescript-eslint/eslint-plugin": "^6.4.1",
-    "@typescript-eslint/parser": "^6.4.1",
-    "aws-sdk-client-mock": "^3.0.0",
-    "esbuild": "^0.19.2",
-    "eslint": "^8.47.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^14.0.1",
-    "prettier": "^3.0.2",
-    "typescript": "^5.1.6",
-    "vitest": "^0.34.2"
+    "@types/debug": "^4.1.12",
+    "@types/mime-db": "^1.43.5",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "aws-sdk-client-mock": "^3.1.0",
+    "esbuild": "^0.21.4",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.5",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "debug": "^4.3.4"
