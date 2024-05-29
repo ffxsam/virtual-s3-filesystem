@@ -156,6 +156,10 @@ class VirtualS3FileSystem {
       commit: async () => {
         this.checkInit();
 
+        if (!this.filePathMap[key]) {
+          await this.throwError(`Cannot commit nonexistent file "${key}"`);
+        }
+
         return new Promise((resolve, reject) => {
           const stream = fs.createReadStream(this.filePathMap[key].path);
 
