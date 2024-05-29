@@ -3,6 +3,7 @@ import * as fsPromises from 'node:fs/promises';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   HeadObjectCommand,
@@ -39,6 +40,14 @@ type CommitOptions = {
   mimeType?: string;
 };
 
+type DestroyOptions = {
+  /**
+   * Whether to delete all committed files from S3 buckets.
+   * @default false
+   */
+  deleteCommitted?: boolean;
+};
+
 export type VfsFile = {
   /**
    * Commits the local file to S3.
@@ -66,6 +75,7 @@ export type VfsFile = {
 const debug = createDebug('vs3fs');
 
 class VirtualS3FileSystem {
+  private committedObjects: S3Location[] = [];
   private fileKeyMap: { [key: string]: S3Location } = {};
   private filePathMap: FilePathMap = {};
   private s3: S3Client;
@@ -147,9 +157,15 @@ class VirtualS3FileSystem {
   /**
    * Destroys the virtual filesystem and deletes all local files.
    */
-  public async destroy(): Promise<void> {
+  public async destroy(options: DestroyOptions = {}): Promise<void> {
     Object.values(this.filePathMap).forEach((file) => file.watcher?.close());
     await fsPromises.rm(this.tmpFolder, { force: true, recursive: true });
+
+    if (options.deleteCommitted) {
+      await this.deleteCommittedFromS3();
+    }
+
+    this.committedObjects = [];
     this.filePathMap = {};
     this.fileKeyMap = {};
   }
@@ -219,6 +235,10 @@ class VirtualS3FileSystem {
           stream.on('close', () => {
             debug(`Successfully uploaded ${key} to ${this.getS3Url(key)}`);
 
+            this.committedObjects.push({
+              bucket: options.bucket || this.fileKeyMap[key].bucket,
+              key: options.key || this.fileKeyMap[key].key,
+            });
             this.filePathMap[key].modified = false;
             resolve();
           });
@@ -384,6 +404,25 @@ class VirtualS3FileSystem {
     }
 
     return { bucket: host, key: pathname.slice(1) };
+  }
+
+  /**
+   * TODO: Make this handle AWS's 1000-key limit. We'll have to write an
+   * intelligent chunk function that groups keys by bucket.
+   */
+  private async deleteCommittedFromS3() {
+    this.checkInit();
+
+    await Promise.all(
+      this.committedObjects.map((s3Location) =>
+        this.s3.send(
+          new DeleteObjectCommand({
+            Bucket: s3Location.bucket,
+            Key: s3Location.key,
+          })
+        )
+      )
+    );
   }
 
   private getS3Url(key: string) {

@@ -107,9 +107,12 @@ init(fileKeyMap: FileKeyMap): Promise<void>
 Initializes the virtual filesystem with a mapping of cache keys to S3 objects.
 
 ```ts
-destroy(): Promise<void>
+destroy(options?: DestroyOptions): Promise<void>
 ```
-Destroys the virtual filesystem and deletes all local files.
+Deletes all local files and clears the virtual key cache.
+
+- **options** (optional):
+  - **deleteCommitted**: Whether to delete all files committed to S3 (intended for cleanup after an error or incomplete process). `@default: false`
 
 ```ts
 file(key: string): VfsFile
