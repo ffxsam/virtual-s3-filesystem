@@ -30,11 +30,20 @@ type FilePathMap = {
   };
 };
 
+type CommitOptions = {
+  /** Commit to a specific bucket */
+  bucket: string;
+  /** Commit to a specific key */
+  key: string;
+  /** MIME type */
+  mimeType?: string;
+};
+
 export type VfsFile = {
   /**
    * Commits the local file to S3.
    */
-  commit: () => Promise<void>;
+  commit: (options?: CommitOptions) => Promise<void>;
 
   /**
    * Deletes the local file. This is useful if you want to save space on
@@ -146,6 +155,16 @@ class VirtualS3FileSystem {
   }
 
   /**
+   * Checks if a file exists in the virtual filesystem. Note that this only
+   * checks for the existence of the cache key, not the actual file.
+   * @param key Cache key for the file
+   * @returns Whether the file exists
+   */
+  public exists(key: string): boolean {
+    return !!this.fileKeyMap[key];
+  }
+
+  /**
    * Gets a file from the virtual filesystem and prepares to run a specified
    * action (chainable methods available).
    * @param key Cache key for the file
@@ -153,7 +172,7 @@ class VirtualS3FileSystem {
    */
   public file(key: string): VfsFile {
     return {
-      commit: async () => {
+      commit: async (options = { bucket: '', key: '' }) => {
         this.checkInit();
 
         if (!this.filePathMap[key]) {
@@ -179,10 +198,11 @@ class VirtualS3FileSystem {
             try {
               await this.s3.send(
                 new PutObjectCommand({
-                  Bucket: this.fileKeyMap[key].bucket,
-                  Key: this.fileKeyMap[key].key,
+                  Bucket: options.bucket || this.fileKeyMap[key].bucket,
+                  Key: options.key || this.fileKeyMap[key].key,
                   Body: stream,
-                  ContentType: this.filePathMap[key].mimeType,
+                  ContentType:
+                    options.mimeType || this.filePathMap[key].mimeType,
                   StorageClass: this.storageClass,
                 })
               );

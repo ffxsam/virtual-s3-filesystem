@@ -126,10 +126,26 @@ createFutureFile(newKey: string, s3Object: S3Url | S3Location, mimeType?: string
 ```
 Creates a placeholder in the cache for a file that will be created in the future and returns a VfsFile object.
 
+```ts
+exists(key: string): boolean
+```
+Checks if the cache key exists in the internal map (does _not_ check for the physical file).
+
 ### `VfsFile` Object
 
-The VfsFile object provides the following methods:
+The `VfsFile` object provides the following methods:
 
-`commit(): Promise<void>`: Commits the local file to S3.  
-`delete(): Promise<void>`: Deletes the local file.  
-`getPath(): Promise<string>`: Gets the local path of the file, downloading from S3 if necessary.
+#### `commit(options?: CommitOptions): Promise<void>`
+Commits the local file to S3.
+
+- **options** (optional): An object containing:
+  - **bucket**: The S3 bucket to which the file should be committed.
+  - **key**: The S3 key under which the file should be stored.
+  - **mimeType**: The MIME type of the file (optional).
+
+#### `delete(): Promise<void>`
+Deletes the local file. This is useful if you want to save space on the Lambda container.
+
+#### `getPath(): Promise<string>`
+Gets the local path of the file. If the file doesn't exist locally, it will be downloaded from S3.
+- **Returns**: A promise that resolves to the local path of the file.
